@@ -4,7 +4,7 @@ import asyncio
 import socket
 import time
 
-from evdev import UInput, ecodes as e
+from evdev import UInput, ecodes as e, AbsInfo
 
 # ============================================================
 # CONFIG
@@ -13,27 +13,57 @@ from evdev import UInput, ecodes as e
 UDP_IP = "0.0.0.0"
 UDP_PORT = 4210
 
-# cooldown anti-spam no Linux
-COOLDOWN = 0.25
+COOLDOWN = 0.20
+
+# ============================================================
+# ABS CONFIG
+# ============================================================
+
+ABS = AbsInfo(
+    value=0,
+    min=-32768,
+    max=32767,
+    fuzz=0,
+    flat=0,
+    resolution=0
+)
 
 # ============================================================
 # GAMEPAD VIRTUAL
 # ============================================================
 
 capabilities = {
+
     e.EV_KEY: [
-        e.BTN_SOUTH,   # X
-        e.BTN_EAST,    # O
-        e.BTN_NORTH,   # Triangle
-        e.BTN_WEST,    # Square
+
+        e.BTN_SOUTH,
+        e.BTN_EAST,
+        e.BTN_NORTH,
+        e.BTN_WEST,
+
         e.BTN_TL,
         e.BTN_TR,
+
         e.BTN_SELECT,
         e.BTN_START,
+
+        e.BTN_THUMBL,
+        e.BTN_THUMBR,
+    ],
+
+    e.EV_ABS: [
+
+        (e.ABS_X, ABS),
+        (e.ABS_Y, ABS),
+        (e.ABS_RX, ABS),
+        (e.ABS_RY, ABS),
     ]
 }
 
-ui = UInput(capabilities, name="ESP32-DS4-Bridge")
+ui = UInput(
+    capabilities,
+    name="ESP32-DS4-Bridge"
+)
 
 print("[VIRT] Controle virtual criado!")
 
@@ -83,10 +113,6 @@ async def udp_loop():
 
         print(f"[UDP] {addr[0]} -> {msg}")
 
-        # ====================================================
-        # BTN_SQUARE
-        # ====================================================
-
         if msg == "BTN_SQUARE":
 
             press_button(e.BTN_WEST)
@@ -95,25 +121,20 @@ async def udp_loop():
 
             last_event = now
 
-        # ====================================================
-        # BTN_SQUARE_DOUBLE
-        # ====================================================
-
         elif msg == "BTN_SQUARE_DOUBLE":
 
             press_button(e.BTN_WEST)
+
             time.sleep(0.08)
+
             press_button(e.BTN_WEST)
 
             print("[ACTION] Double Square")
 
             last_event = now
 
-        # ====================================================
-        # DEBUG
-        # ====================================================
-
         else:
+
             print(f"[WARN] Evento desconhecido: {msg}")
 
         await asyncio.sleep(0.001)
@@ -136,6 +157,7 @@ async def main():
 # ============================================================
 
 try:
+
     asyncio.run(main())
 
 except KeyboardInterrupt:
